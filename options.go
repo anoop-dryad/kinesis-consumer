@@ -65,6 +65,14 @@ func WithScanInterval(d time.Duration) Option {
 	}
 }
 
+// Option to enable idle scan
+func WithIdleScan(idleScanInterval time.Duration) Option {
+	return func(c *Consumer) {
+		c.isIdleScanEnabled = true
+		c.idleScanInterval = idleScanInterval
+	}
+}
+
 // WithMaxRecords overrides the maximum number of records to be
 // returned in a single GetRecords call for the consumer (specify a
 // value of up to 10,000)

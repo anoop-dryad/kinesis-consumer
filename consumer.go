@@ -77,6 +77,8 @@ type Consumer struct {
 	logger                   Logger
 	store                    Store
 	scanInterval             time.Duration
+	idleScanInterval         time.Duration // interval applies during "idle" periods with no records
+	isIdleScanEnabled        bool          // flag to enable/disable idle scan interval
 	maxRecords               int64
 	isAggregated             bool
 	shardClosedHandler       ShardClosedHandler
@@ -181,6 +183,15 @@ func (c *Consumer) ScanShard(ctx context.Context, shardID string, fn ScanFunc) e
 	scanTicker := time.NewTicker(c.scanInterval)
 	defer scanTicker.Stop()
 
+	// ticker to handle delay when no records found
+	var idleScanTicker *time.Ticker
+	if c.isIdleScanEnabled {
+		idleScanTicker = time.NewTicker(c.idleScanInterval)
+		defer idleScanTicker.Stop()
+	}
+	// variable to track the active ticker : defaulted to scan interval
+	activeTicker := scanTicker
+
 	for {
 		resp, err := c.client.GetRecords(ctx, &kinesis.GetRecordsInput{
 			Limit:         aws.Int32(int32(c.maxRecords)),
@@ -211,6 +222,13 @@ func (c *Consumer) ScanShard(ctx context.Context, shardID string, fn ScanFunc) e
 				}
 			} else {
 				records = resp.Records
+			}
+
+			// logic to dynamically toggle delay between the scans if its enabled
+			if len(records) == 0 && c.isIdleScanEnabled && activeTicker != idleScanTicker {
+				activeTicker = idleScanTicker
+			} else if len(records) >= 1 && activeTicker != scanTicker {
+				activeTicker = scanTicker
 			}
 
 			for _, r := range records {
@@ -250,8 +268,9 @@ func (c *Consumer) ScanShard(ctx context.Context, shardID string, fn ScanFunc) e
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-scanTicker.C:
+		case <-activeTicker.C:
 			continue
+
 		}
 	}
 }
