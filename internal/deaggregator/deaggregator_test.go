@@ -13,8 +13,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 
+	deagg "github.com/anoop-dryad/kinesis-consumer/internal/deaggregator"
 	rec "github.com/awslabs/kinesis-aggregation/go/records"
-	deagg "github.com/harlow/kinesis-consumer/internal/deaggregator"
 )
 
 // Generate an aggregate record in the correct AWS-specified format
