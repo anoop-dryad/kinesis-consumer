@@ -226,7 +226,6 @@ func (c *Consumer) ScanShard(ctx context.Context, shardID string, fn ScanFunc) e
 
 			// logic to dynamically toggle delay between the scans if its enabled
 			if len(records) == 0 && c.isIdleScanEnabled && activeTicker != idleScanTicker {
-				c.logger.Log("idle scan timer set:", shardID)
 				activeTicker = idleScanTicker
 			} else if len(records) >= 1 && activeTicker != scanTicker {
 				activeTicker = scanTicker
@@ -270,7 +269,6 @@ func (c *Consumer) ScanShard(ctx context.Context, shardID string, fn ScanFunc) e
 		case <-ctx.Done():
 			return nil
 		case <-activeTicker.C:
-			c.logger.Log("idle scan timer done:", shardID)
 			continue
 
 		}
